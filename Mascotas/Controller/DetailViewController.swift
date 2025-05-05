@@ -50,7 +50,9 @@ class DetailViewController: UIViewController {
         let action = UIAlertAction(title: "SI", style: .destructive) {
             alertaction in
             DataManager.shared.borrar(objeto:self.laMascota)
-            self.dismiss(animated: true)
+            // si se implementa con navigation controller:
+            self.navigationController?.popViewController(animated: true)
+            // self.dismiss(animated: true)
         }
         let action2 = UIAlertAction(title: "NO", style:.cancel)
         ac.addAction(action)
