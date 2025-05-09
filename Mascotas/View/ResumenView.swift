@@ -14,7 +14,7 @@ class ResumenView: UIView {
         self.addSubview(tv)
         tv.translatesAutoresizingMaskIntoConstraints = false
         tv.widthAnchor.constraint(equalToConstant:250).isActive = true
-        tv.heightAnchor.constraint(equalToConstant:250).isActive = true
+        tv.heightAnchor.constraint(equalToConstant:450).isActive = true
         tv.centerXAnchor.constraint(equalTo: self.centerXAnchor).isActive = true
         tv.topAnchor.constraint(equalTo:self.topAnchor, constant: 15).isActive = true
         tv.backgroundColor = .systemCyan

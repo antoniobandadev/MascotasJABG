@@ -7,7 +7,7 @@
 
 import UIKit
 
-class DetailView: UIView {
+class DetailView: UIView{
     
     let btnDelete = UIButton(type: .system)
     let txtNombre = UITextField()
@@ -16,6 +16,9 @@ class DetailView: UIView {
     let txtEdad = UITextField()
     let btnAdopt = UIButton(type: .custom)
     let lblResponsable = UILabel()
+    let pickerView = UIPickerView()
+    let txtPicker = UITextField()
+    
     
     override func draw(_ rect: CGRect) {
         // Crear el stack view
@@ -44,6 +47,12 @@ class DetailView: UIView {
         txtEdad.placeholder = "Edad" // Texto de marcador
         stackView.addArrangedSubview(txtEdad) // Agregar al stack view
         
+        txtPicker.borderStyle = .roundedRect
+        txtPicker.placeholder = "Seleccione un responsable"
+        //pickerView.center = stackView.center
+        txtPicker.inputView = pickerView
+        stackView.addArrangedSubview(txtPicker)
+        
         btnAdopt.backgroundColor = .red
         btnAdopt.setTitle("Adoptar", for: .normal)
         stackView.addArrangedSubview(btnAdopt)
@@ -55,14 +64,19 @@ class DetailView: UIView {
         btnDelete.setImage(UIImage(systemName: "pip.remove"), for: .normal)
         stackView.addArrangedSubview(btnDelete)
         
+        
+        
+        
+        
         // Agregar el stack view a la vista principal
         self.addSubview(stackView)
+        
         
         // Configurar las restricciones del stack view
         NSLayoutConstraint.activate([
             stackView.centerXAnchor.constraint(equalTo: self.centerXAnchor), // Centrar horizontalmente
             stackView.centerYAnchor.constraint(equalTo: self.centerYAnchor), // Centrar verticalmente
-            stackView.widthAnchor.constraint(equalTo: self.widthAnchor, multiplier: 0.8) // Ancho del stack view
+            stackView.widthAnchor.constraint(equalTo: self.widthAnchor, multiplier: 0.8), // Ancho del stack view
         ])
     }
 

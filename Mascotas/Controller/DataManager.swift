@@ -18,13 +18,13 @@ class DataManager : NSObject {
          creates and returns a container, having loaded the store for the
          application to it. This property is optional since there are legitimate
          error conditions that could cause the creation of the store to fail.
-        */
+         */
         let container = NSPersistentContainer(name: "Mascotas")
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 // Replace this implementation with code to handle the error appropriately.
                 // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                 
+                
                 /*
                  Typical reasons for an error here include:
                  * The parent directory does not exist, cannot be created, or disallows writing.
@@ -38,7 +38,7 @@ class DataManager : NSObject {
         })
         return container
     }()
-
+    
     // MARK: - Core Data Saving support
     func saveContext () {
         let context = persistentContainer.viewContext
@@ -53,7 +53,7 @@ class DataManager : NSObject {
             }
         }
     }
-
+    
     // MARK: - Custom methods
     func llenaBD () {
         // validar si la BD ya se sincronizo
@@ -119,9 +119,11 @@ class DataManager : NSObject {
         responsables.forEach { responsableVO in
             let responsable = NSManagedObject(entity: entidadDesc, insertInto:persistentContainer.viewContext) as! Responsable
             responsable.inicializa(responsableVO)
+            try? persistentContainer.viewContext.save()
             if let idMascota = responsableVO.duenoDe, idMascota != 0 {
                 if let miMascota = buscaMascotaConId(idMascota) {
-                    responsable.mascotas?.adding(miMascota)
+                    //print(miMascota)
+                    responsable.addToMascotas(miMascota)
                     miMascota.responsable = responsable
                 }
             }
@@ -152,15 +154,76 @@ class DataManager : NSObject {
         catch {
             print ("no se puede ejecutar el query SELECT * FROM Mascota")
         }
-        return arreglo
+        let sortedA = arreglo.sorted {m1, m2  in
+            return m1.nombre ?? "" < m2.nombre ?? ""  // Descendente
+        }
+        return sortedA
     }
     
-    func todasLasMascotas(tipo:String) -> [Mascota] {
+    func todosLosResponsables() -> [Responsable] {
+        var arreglo = [Responsable]()
+        let elQuery = Responsable.fetchRequest()
+        do {
+            arreglo = try persistentContainer.viewContext.fetch(elQuery)
+        }
+        catch {
+            print ("no se puede ejecutar el query SELECT * FROM Responsable")
+        }
+        let sortedA = arreglo.sorted {m1, m2  in
+            return m1.nombre ?? "" < m2.nombre ?? ""
+        }
+        return sortedA
+    }
+    
+    func buscaMascotaId(_ idMascota:Int16) -> Mascota? {
+        let elQuery = Mascota.fetchRequest()
+        let elFiltro = NSPredicate(format:"id == %d", idMascota)
+        elQuery.predicate = elFiltro
+        do {
+            let tmp = try persistentContainer.viewContext.fetch(elQuery)
+            return tmp.first
+        }
+        catch {
+            print ("no se puede ejecutar el query SELECT * FROM Mascota WHERE id = [n]")
+        }
+        return nil
+    }
+    
+    func asignarResponsableAMascota(_ responsable: Responsable, _ idMascota: Int16) {
+        if let miMascota = buscaMascotaId(idMascota) {
+            
+            miMascota.responsable = responsable
+            
+            responsable.addToMascotas(miMascota)
+            
+            saveContext()
+        }
+    }
+    
+    /*func todasLasMascotas(tipo: [String]) -> [Mascota] {
+        guard !tipo.isEmpty else { return [] }
+        
+        let elQuery: NSFetchRequest<Mascota> = Mascota.fetchRequest()
+        let condiciones = tipo.map { _ in "tipo =[c] %@" }.joined(separator: " OR ")
+        elQuery.predicate = NSPredicate(format: condiciones, argumentArray: tipo)
+        
+        do {
+            let resultado = try persistentContainer.viewContext.fetch(elQuery)
+            let ordenado = resultado.sorted { ($0.nombre ?? "") < ($1.nombre ?? "") }
+            return ordenado
+        } catch {
+            print("Error al ejecutar fetch: \(error.localizedDescription)")
+            return []
+        }
+    }*/
+    
+    func todasLasMascotas(tipo:[String]) -> [Mascota] {
         var arreglo = [Mascota]()
         let elQuery = Mascota.fetchRequest()
         // [c] significa "case insensitive"
-        let elFiltro = NSPredicate(format:"tipo =[c] %@", tipo)
-        elQuery.predicate = elFiltro
+        let condiciones = tipo.map { _ in "tipo =[c] %@" }.joined(separator: " OR ")
+        elQuery.predicate = NSPredicate(format: condiciones, argumentArray: tipo)
+       
         do {
             arreglo = try persistentContainer.viewContext.fetch(elQuery)
         }
@@ -168,7 +231,26 @@ class DataManager : NSObject {
             print ("no se puede ejecutar el query SELECT * FROM Mascota WHERE tipo='%'")
         }
         let sortedA = arreglo.sorted {m1, m2  in
-            return m1.nombre ?? "" > m2.nombre ?? ""  // Descendente
+            return m1.nombre ?? "" < m2.nombre ?? ""  // Descendente
+        }
+        return sortedA
+    }
+    
+    func todasLasMascotasMenos(tipo:[String]) -> [Mascota] {
+        var arreglo = [Mascota]()
+        let elQuery = Mascota.fetchRequest()
+        // [c] significa "case insensitive"
+        let condiciones = tipo.map { _ in "tipo !=[c] %@" }.joined(separator: " AND ")
+        elQuery.predicate = NSPredicate(format: condiciones, argumentArray: tipo)
+       
+        do {
+            arreglo = try persistentContainer.viewContext.fetch(elQuery)
+        }
+        catch {
+            print ("no se puede ejecutar el query SELECT * FROM Mascota WHERE tipo='%'")
+        }
+        let sortedA = arreglo.sorted {m1, m2  in
+            return m1.nombre ?? "" < m2.nombre ?? ""  // Descendente
         }
         return sortedA
     }

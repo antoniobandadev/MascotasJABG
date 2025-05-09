@@ -10,7 +10,7 @@ import UIKit
 class TableViewController: UITableViewController {
     var mascotas = [Mascota]()
     let filtro = UISegmentedControl(items: ["Todos", "Gatos", "Perros", "Aves", "Otros"])
-    
+   
     override func viewDidLoad() {
         super.viewDidLoad()
         filtro.selectedSegmentIndex = 0
@@ -20,6 +20,7 @@ class TableViewController: UITableViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        count()
         actualizar()
         NotificationCenter.default.addObserver(self, selector:#selector(actualizar), name: NSNotification.Name("DELETED_OBJECT"), object:nil)
     }
@@ -28,14 +29,29 @@ class TableViewController: UITableViewController {
     func actualizar() {
         // Considerar el valor seleccionado en el filtro
         switch filtro.selectedSegmentIndex {
-            case 1:mascotas = DataManager.shared.todasLasMascotas(tipo: "gato")
-            case 2:mascotas = DataManager.shared.todasLasMascotas(tipo:"perro")
-            case 3:mascotas = // TODO: - Crea el método necesario
-            case 4:mascotas = // TODO: - Crea el método necesario
+            case 1:mascotas = DataManager.shared.todasLasMascotas(tipo: ["gato"])
+            case 2:mascotas = DataManager.shared.todasLasMascotas(tipo:["perro"])
+            case 3:mascotas = DataManager.shared.todasLasMascotas(tipo:["perico","canario"])
+            case 4:mascotas = DataManager.shared.todasLasMascotasMenos(tipo:["gato","perro","perico","canario"])
             default:mascotas = DataManager.shared.todasLasMascotas()
         }
         tableView.reloadData()
     }
+    
+    @objc
+    func count() {
+            mascotas = DataManager.shared.todasLasMascotas(tipo: ["gato"])
+                filtro.setTitle("Gatos \(mascotas.count)", forSegmentAt: 1)
+            mascotas = DataManager.shared.todasLasMascotas(tipo:["perro"])
+                filtro.setTitle("Perros \(mascotas.count)", forSegmentAt: 2)
+            mascotas = DataManager.shared.todasLasMascotas(tipo:["perico","canario"])
+                filtro.setTitle("Aves \(mascotas.count)", forSegmentAt: 3)
+            mascotas = DataManager.shared.todasLasMascotasMenos(tipo:["gato","perro","perico","canario"])
+                filtro.setTitle("Otros \(mascotas.count)", forSegmentAt: 4)
+            mascotas = DataManager.shared.todasLasMascotas()
+                filtro.setTitle("Todos \(mascotas.count)", forSegmentAt: 0)
+    }
+    
 
     // MARK: - Table view data source
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -64,4 +80,9 @@ class TableViewController: UITableViewController {
         // self.present(dv, animated:true)
         self.navigationController?.pushViewController(dv, animated: true)
     }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 }
+
