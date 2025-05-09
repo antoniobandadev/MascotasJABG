@@ -49,7 +49,7 @@ class DataManager : NSObject {
                 // Replace this implementation with code to handle the error appropriately.
                 // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
                 let nserror = error as NSError
-                print("Unresolved error \(nserror), \(nserror.userInfo)")
+                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
             }
         }
     }
@@ -73,8 +73,7 @@ class DataManager : NSObject {
                         //let tmp = try JSONSerialization.jsonObject(with: datos!) as! [[String:Any]]
                         let arreglo = try JSONDecoder().decode([MascotaVO].self, from: datos!)
                         self.guardaMascotas (arreglo)
-                        // TODO: implementa la parte de descarga y guardado de los responsables
-                        self.obtenResponsables()
+                        
                     }
                     catch {
                         print ("algo falló \(error.localizedDescription)")
@@ -82,6 +81,32 @@ class DataManager : NSObject {
                 }
                 task.resume()
             }
+            
+             if let url = URL(string: "http://janzelaznog.com/DDAM/iOS/responsables.json"){
+                 let session = URLSession(configuration: .default)
+                 let task = session.dataTask(with: URLRequest(url: url)){
+                     data, response, error in
+                     
+                     if error != nil && data == nil {
+                         print("No se pudo descargar el feed de mascotas")
+                         return
+                     }
+                     
+                     do{
+                        
+                         let arrayResponsables = try JSONDecoder().decode([ResponsableVO].self, from: data!)
+                         //print(arrayResponsables)
+                         
+                         self.guardaResponsables(arrayResponsables, self.persistentContainer.viewContext)
+                         
+                     }
+                     catch{
+                         print("Error : \(error.localizedDescription)")
+                     }
+                     
+                 }
+                 task.resume()
+             }
             ud.setValue(1, forKey: "BD-OK")
         }
         // La BD ya fue sincronizada anteriormente
@@ -96,56 +121,32 @@ class DataManager : NSObject {
         saveContext()
     }
     
-    func obtenResponsables() {
-        if let laURL = URL(string: "http://janzelaznog.com/DDAM/iOS/responsables.json") {
-            let sesion = URLSession(configuration: .default)
-            let tarea = sesion.dataTask(with:URLRequest(url:laURL)) { data, response, error in
-                if error != nil {
-                    print ("no se pudo descargar el feed de responsables \(error?.localizedDescription ?? "")")
-                    return
-                }
-                do {
-                    let tmp = try JSONDecoder().decode([ResponsableVO].self, from:data!)
-                    self.guardaResponsables (tmp)
-                }
-                catch { print ("no se obtuvo un JSON en la respuesta") }
-            }
-            tarea.resume()
-        }
-    }
-    
-    
-    
-    func guardaResponsables (_ responsables:[ResponsableVO]) {
-        guard let entidadDesc = NSEntityDescription.entity(forEntityName: "Responsable", in: persistentContainer.viewContext) else { return }
+    func guardaResponsables(_ responsables:[ResponsableVO], _ context: NSManagedObjectContext) {
+        guard let entidadDesc = NSEntityDescription.entity(forEntityName: "Responsable", in: context) else { return }
+
         responsables.forEach { responsableVO in
-            let responsable = NSManagedObject(entity: entidadDesc, insertInto:persistentContainer.viewContext) as! Responsable
+            let responsable = NSManagedObject(entity: entidadDesc, insertInto: context) as! Responsable
             responsable.inicializa(responsableVO)
-            try? persistentContainer.viewContext.save()
-            if let idMascota = responsableVO.duenoDe, idMascota != 0 {
-                if let miMascota = buscaMascotaConId(idMascota) {
-                    //print(miMascota)
-                    responsable.addToMascotas(miMascota)
-                    miMascota.responsable = responsable
-                }
+
+            let fetchRequest: NSFetchRequest<Mascota> = Mascota.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %d", responsable.duenio_de)
+
+            if let mascota = try? context.fetch(fetchRequest).first {
+                responsable.addToMascotas(mascota)
+                mascota.responsable = responsable
+            } else {
+                print("No se encontró la mascota con ID \(responsable.duenio_de)")
             }
         }
-        saveContext()
+
+        do {
+            try context.save()
+        } catch {
+            print("Error al guardar el contexto: \(error)")
+        }
     }
     
-    func buscaMascotaConId(_ idMascota:Int) -> Mascota? {
-        let elQuery = Mascota.fetchRequest()
-        let elFiltro = NSPredicate(format:"id == %d", idMascota)
-        elQuery.predicate = elFiltro
-        do {
-            let tmp = try persistentContainer.viewContext.fetch(elQuery)
-            return tmp.first
-        }
-        catch {
-            print ("no se puede ejecutar el query SELECT * FROM Mascota WHERE id = [n]")
-        }
-        return nil
-    }
+   
     
     func todasLasMascotas() -> [Mascota] {
         var arreglo = [Mascota]()
@@ -203,22 +204,7 @@ class DataManager : NSObject {
         }
     }
     
-    /*func todasLasMascotas(tipo: [String]) -> [Mascota] {
-        guard !tipo.isEmpty else { return [] }
-        
-        let elQuery: NSFetchRequest<Mascota> = Mascota.fetchRequest()
-        let condiciones = tipo.map { _ in "tipo =[c] %@" }.joined(separator: " OR ")
-        elQuery.predicate = NSPredicate(format: condiciones, argumentArray: tipo)
-        
-        do {
-            let resultado = try persistentContainer.viewContext.fetch(elQuery)
-            let ordenado = resultado.sorted { ($0.nombre ?? "") < ($1.nombre ?? "") }
-            return ordenado
-        } catch {
-            print("Error al ejecutar fetch: \(error.localizedDescription)")
-            return []
-        }
-    }*/
+    
     
     func todasLasMascotas(tipo:[String]) -> [Mascota] {
         var arreglo = [Mascota]()
@@ -302,3 +288,93 @@ class DataManager : NSObject {
         NotificationCenter.default.post(name: NSNotification.Name("DELETED_OBJECT"), object:nil)
     }
 }
+
+
+/* func obtenResponsables() {
+     if let laURL = URL(string: "http://janzelaznog.com/DDAM/iOS/responsables.json") {
+         let sesion = URLSession(configuration: .default)
+         let tarea = sesion.dataTask(with:URLRequest(url:laURL)) { data, response, error in
+             if error != nil {
+                 print ("no se pudo descargar el feed de responsables \(error?.localizedDescription ?? "")")
+                 return
+             }
+             do {
+                 let tmp = try JSONDecoder().decode([ResponsableVO].self, from:data!)
+                 self.guardaResponsables (tmp,  self.persistentContainer.viewContext)
+             }
+             catch { print ("no se obtuvo un JSON en la respuesta") }
+         }
+         tarea.resume()
+     }
+ }*/
+ 
+ 
+ 
+ /*func guardaResponsables (_ responsables:[ResponsableVO]) {
+     guard let entidadDesc = NSEntityDescription.entity(forEntityName: "Responsable", in: persistentContainer.viewContext) else { return }
+     responsables.forEach { responsableVO in
+         let responsable = NSManagedObject(entity: entidadDesc, insertInto:persistentContainer.viewContext) as! Responsable
+         responsable.inicializa(responsableVO)
+         try? persistentContainer.viewContext.save()
+         if let idMascota = responsableVO.duenoDe, idMascota != 0 {
+             if let miMascota = buscaMascotaConId(idMascota) {
+                 //print(miMascota)
+                 responsable.addToMascotas(miMascota)
+                 miMascota.responsable = responsable
+             }
+         }
+     }
+     saveContext()
+ }*/
+ 
+ /* Mi funcion
+ func guardaResponsables (_ responsables:[ResponsableVO], _ context:NSManagedObjectContext) {
+         guard let entidadDesc = NSEntityDescription.entity(forEntityName: "Responsable", in: persistentContainer.viewContext) else { return }
+         responsables.forEach { responsableVO in   // for m in mascotas { ... }
+             let responsable = NSManagedObject(entity: entidadDesc, insertInto:persistentContainer.viewContext) as! Responsable
+             responsable.inicializa(responsableVO)
+             
+             let fetchRequest: NSFetchRequest<Mascota> = Mascota.fetchRequest()// se crea la solicitud para obtener objetos Mascota des BD
+             fetchRequest.predicate = NSPredicate(format: "id == %d", responsable.duenio_de) // Filtro %d Int16 %@ String
+
+             if let mascota = try? context.fetch(fetchRequest).first {
+                 responsable.addToMascotas(mascota) // Relacionar mascota con responsable
+                 mascota.responsable = responsable  // Relacionar responsable con mascota
+             } else {
+                 print(" No se encontró la mascota con ID \(responsable.duenio_de)")
+             }
+         }
+         saveContext()
+ }*/
+ 
+ /*func buscaMascotaConId(_ idMascota:Int) -> Mascota? {
+     let elQuery = Mascota.fetchRequest()
+     let elFiltro = NSPredicate(format:"id == %d", idMascota)
+     elQuery.predicate = elFiltro
+     do {
+         let tmp = try persistentContainer.viewContext.fetch(elQuery)
+         return tmp.first
+     }
+     catch {
+         print ("no se puede ejecutar el query SELECT * FROM Mascota WHERE id = [n]")
+     }
+     return nil
+ }*/
+
+
+/*func todasLasMascotas(tipo: [String]) -> [Mascota] {
+    guard !tipo.isEmpty else { return [] }
+    
+    let elQuery: NSFetchRequest<Mascota> = Mascota.fetchRequest()
+    let condiciones = tipo.map { _ in "tipo =[c] %@" }.joined(separator: " OR ")
+    elQuery.predicate = NSPredicate(format: condiciones, argumentArray: tipo)
+    
+    do {
+        let resultado = try persistentContainer.viewContext.fetch(elQuery)
+        let ordenado = resultado.sorted { ($0.nombre ?? "") < ($1.nombre ?? "") }
+        return ordenado
+    } catch {
+        print("Error al ejecutar fetch: \(error.localizedDescription)")
+        return []
+    }
+}*/
