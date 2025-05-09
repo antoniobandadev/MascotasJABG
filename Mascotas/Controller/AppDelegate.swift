@@ -19,8 +19,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         IQKeyboardManager.shared.isEnabled = true
-        IQKeyboardManager.shared.isDebuggingEnabled = true
-        IQKeyboardToolbarManager.shared.isEnabled = true
         IQKeyboardManager.shared.resignOnTouchOutside = true
         DataManager.shared.llenaBD()
         return true

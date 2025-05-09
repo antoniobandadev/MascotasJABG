@@ -49,7 +49,7 @@ class DataManager : NSObject {
                 // Replace this implementation with code to handle the error appropriately.
                 // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
                 let nserror = error as NSError
-                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
+                print("Unresolved error \(nserror), \(nserror.userInfo)")
             }
         }
     }
@@ -114,6 +114,8 @@ class DataManager : NSObject {
         }
     }
     
+    
+    
     func guardaResponsables (_ responsables:[ResponsableVO]) {
         guard let entidadDesc = NSEntityDescription.entity(forEntityName: "Responsable", in: persistentContainer.viewContext) else { return }
         responsables.forEach { responsableVO in
@@ -172,6 +174,7 @@ class DataManager : NSObject {
         let sortedA = arreglo.sorted {m1, m2  in
             return m1.nombre ?? "" < m2.nombre ?? ""
         }
+            
         return sortedA
     }
     

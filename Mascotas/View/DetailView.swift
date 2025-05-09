@@ -18,6 +18,7 @@ class DetailView: UIView{
     let lblResponsable = UILabel()
     let pickerView = UIPickerView()
     let txtPicker = UITextField()
+    let toolbar = UIToolbar()
     
     
     override func draw(_ rect: CGRect) {
@@ -64,15 +65,12 @@ class DetailView: UIView{
         btnDelete.setImage(UIImage(systemName: "pip.remove"), for: .normal)
         stackView.addArrangedSubview(btnDelete)
         
-        
-        
-        
+        toolbar.sizeToFit()
+        txtPicker.inputAccessoryView = toolbar
         
         // Agregar el stack view a la vista principal
         self.addSubview(stackView)
         
-        
-        // Configurar las restricciones del stack view
         NSLayoutConstraint.activate([
             stackView.centerXAnchor.constraint(equalTo: self.centerXAnchor), // Centrar horizontalmente
             stackView.centerYAnchor.constraint(equalTo: self.centerYAnchor), // Centrar verticalmente

@@ -14,6 +14,7 @@ class DetailViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     var detalle: DetailView!
     var responsables = [Responsable]()
     var responsableSeleccionado: Responsable?
+    var cerrarPorDone = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,6 +25,8 @@ class DetailViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
         detalle.pickerView.dataSource = self
         detalle.txtPicker.delegate = self
         responsables = DataManager.shared.todosLosResponsables()
+        
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -34,13 +37,18 @@ class DetailViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     
     
     func initUI() {
+        let flexible = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(doneTapped))
+        
         detalle.txtNombre.text = laMascota.nombre ?? ""
         detalle.txtGenero.text = laMascota.genero ?? ""
         detalle.txtTipo.text = laMascota.tipo ?? ""
         detalle.txtEdad.text = "\(laMascota.edad)"
         detalle.btnDelete.addTarget(self, action:#selector(borrar), for:.touchUpInside)
         detalle.btnAdopt.addTarget(self, action: #selector(abrirPicker), for: .touchUpInside)
-    
+        
+        detalle.toolbar.setItems([flexible, doneButton], animated: false)
+        
         //detalle.txtPicker.inputView = detalle.pickerView.view
         
         // TODO: - Si la mascota ya tiene un responsable, ocultar el botón
@@ -60,8 +68,19 @@ class DetailViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
             detalle.lblResponsable.frame.size.height = 0
         }
         
-    }
         
+    }
+    
+    // Acción del botón Done
+    @objc func doneTapped() {
+        detalle.txtPicker.resignFirstResponder() // Cierra el picker o el teclado
+        if let responsableSeleccionado {
+            DataManager.shared.asignarResponsableAMascota(responsableSeleccionado, laMascota.id)
+        }
+        initUI()
+    }
+    
+    
     @objc
     func abrirPicker(_ sender: UIButton) {
         detalle.txtPicker.becomeFirstResponder()
@@ -98,19 +117,8 @@ class DetailViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        print("Seleccionaste: \(responsables[row].nombre ?? "")")
-        detalle.txtPicker.text = responsables[row].nombre
         responsableSeleccionado = responsables[row]
     }
     
-    func textFieldDidEndEditing(_ textField: UITextField) {
-        /*print("Edición finalizada, valor: \(textField.text ?? "")")
-        print(responsableSeleccionado ?? "")*/
-        // Aquí puedes hacer algo con el valor seleccionado
-        if let responsableSeleccionado {
-            DataManager.shared.asignarResponsableAMascota(responsableSeleccionado, laMascota.id)
-        }
-        initUI()
-    }
 }
 
